@@ -1,25 +1,23 @@
-import logo from './logo.svg';
-import './App.css';
+import logo from "./logo.svg";
+import { useCallback, useEffect, useState } from "react";
+import "./App.css";
+import MenuTable from "components/menuTable";
+import { fetchMenu } from "gateways/fetchMenu";
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  const [menu, setMenu] = useState([]);
+
+  const fetchMenuItems = useCallback(async () => {
+    const response = await fetchMenu();
+    console.log("resonse is  === ", response);
+    setMenu(response);
+  }, []);
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, [fetchMenuItems]);
+
+  return <MenuTable data={menu} />;
 }
 
 export default App;
