@@ -1,164 +1,155 @@
-import React, { useState } from "react";
-import { useTable, useExpanded } from "react-table";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Box } from "@mui/material";
+import { MaterialReactTable } from "material-react-table";
+import Button from "components/buttons";
 
-const MenuTable = ({ data = [] }) => {
-  console.log("datais============ ", data);
-  // Aggregate data by categories
-  const aggregatedData = React.useMemo(() => {
-    const categoriesMap = new Map();
-    data.forEach((category) => {
-      category.categories.forEach((item) => {
-        if (categoriesMap.has(item.category)) {
-          categoriesMap.get(item.category).push(item);
-        } else {
-          categoriesMap.set(item.category, [item]);
-          console.log("datais============ ", data);
-        }
-      });
-    });
+const Example = ({ handleSave, handleReset, data = [] }) => {
+  const [editPriceItemId, setEditPriceItemId] = useState(null);
+  const inputRef = useRef();
 
-    const aggregatedCategories = [];
-    for (const [category, items] of categoriesMap.entries()) {
-      aggregatedCategories.push({ category, items });
-    }
-
-    return aggregatedCategories;
-  }, [data]);
-
-  const handleSave = (row) => {
-    // Handle save action for the row data
-    console.log("Save", row.original);
+  const handlePriceCellClick = (itemId) => {
+    setEditPriceItemId(itemId);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
-  const handleReset = (row) => {
-    // Handle reset action for the row data
-    console.log("Reset", row.original);
-  };
-
-  const columns = React.useMemo(
-    () => [
-      { Header: "Category", accessor: "category" },
-      { Header: "Name", accessor: "items[0].name" },
-      {
-        Header: "Image",
-        accessor: "items[0].image",
-        Cell: ({ value }) => (
-          <img src={value} alt="Item" style={{ width: "50px" }} />
-        ),
-      },
-      { Header: "Label", accessor: "items[0].label" },
-      { Header: "Price", accessor: "items[0].price" },
-      { Header: "Description", accessor: "items[0].description" },
-      {
-        Header: "Actions",
-        Cell: ({ row }) => (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <button onClick={() => handleSave(row)}>Save</button>
-            <button onClick={() => handleReset(row)}>Reset</button>
-          </div>
-        ),
-      },
-    ],
-    []
+  const callSaveReset = useCallback(
+    (type, row, value) => {
+      type === "save" ? handleSave(row, value) : handleReset(row, value);
+      setEditPriceItemId(null);
+    },
+    [handleSave, handleReset]
   );
 
-  const [expandedCategories, setExpandedCategories] = useState([]);
-
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    visibleColumns,
-  } = useTable({ columns, data: aggregatedData }, useExpanded);
-
-  const toggleCategoryExpansion = (category) => {
-    if (expandedCategories.includes(category)) {
-      setExpandedCategories(expandedCategories.filter((c) => c !== category));
-    } else {
-      setExpandedCategories([...expandedCategories, category]);
-    }
-  };
+  const columns = useMemo(
+    () => [
+      {
+        header: "Category",
+        accessorKey: "category",
+        enableGrouping: false,
+        Cell: ({ cell }) => <b>{cell.row.original.category}</b>,
+        size: 120, // Set the width of the column
+        enableSorting: false,
+      },
+      {
+        header: "Name",
+        accessorKey: "name",
+        size: 120, // Set the width of the column
+        enableSorting: false,
+      },
+      {
+        header: "Label",
+        accessorKey: "label",
+        size: 120, // Set the width of the column
+        enableSorting: false,
+      },
+      {
+        header: "Price",
+        accessorKey: "price",
+        Cell: ({ cell }) => {
+          const cellVal = cell.getValue();
+          if (cell.row.original._id === editPriceItemId) {
+            return (
+              <input ref={inputRef} type="text" style={{ width: "90%" }} />
+            );
+          }
+          return (
+            <div>
+              <td
+                onClick={() =>
+                  handlePriceCellClick(cell.row.original._id, cellVal)
+                }
+              >
+                {cellVal}
+              </td>
+            </div>
+          );
+        },
+        size: 100, // Set the width of the column
+      },
+      {
+        header: "Description",
+        accessorKey: "description",
+        Cell: ({ cell }) => (
+          <div
+            style={{
+              whiteSpace: "pre-wrap",
+              overflowWrap: "break-word",
+              width: 200, // Set the width of the column
+            }}
+          >
+            {cell.getValue()}
+          </div>
+        ),
+        enableSorting: false,
+      },
+      {
+        header: "Image",
+        accessorKey: "image",
+        Cell: ({ cell }) => (
+          <img src={cell.getValue()} alt="Item" style={{ width: "50px" }} />
+        ),
+        size: 100, // Set the width of the column
+        enableSorting: false,
+      },
+      {
+        Header: "Actions",
+        accessorKey: "_id",
+        Cell: ({ row }) => (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Button
+              label="Save"
+              type="SAVE"
+              onClick={() => {
+                callSaveReset("save", row, inputRef.current?.value);
+              }}
+            />
+            <Button
+              label="Reset"
+              type="RESET"
+              onClick={() =>
+                callSaveReset("reset", row, inputRef.current?.value)
+              }
+            />
+          </div>
+        ),
+        size: 120, // Set the width of the column
+        enableSorting: false,
+        enableGrouping: false,
+        enableColumnFilters: false,
+        enableHiding: false,
+      },
+    ],
+    [editPriceItemId, callSaveReset]
+  );
 
   return (
-    <table
-      className="menu-table"
-      {...getTableProps()}
-      style={{ borderCollapse: "collapse" }}
-    >
-      <thead>
-        {headerGroups.map((headerGroup) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
-              <th
-                {...column.getHeaderProps()}
-                style={{
-                  padding: "8px",
-                  border: "1px solid white",
-                  background: "black",
-                  color: "white",
-                }}
-              >
-                {column.render("Header")}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {rows.map((row) => {
-          prepareRow(row);
-          return (
-            <React.Fragment key={row.id}>
-              <tr>
-                <td
-                  style={{
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    border: "1px solid grey",
-                  }}
-                  onClick={() => toggleCategoryExpansion(row.original.category)}
-                >
-                  {expandedCategories.includes(row.original.category)
-                    ? "-"
-                    : "+"}
-                  {row.original.category}
-                </td>
-                {row.cells.slice(1).map((cell) => (
-                  <td
-                    key={cell.column.id}
-                    {...cell.getCellProps()}
-                    style={{ padding: "8px", border: "1px solid grey" }}
-                  >
-                    {cell.render("Cell")}
-                  </td>
-                ))}
-              </tr>
-              {expandedCategories.includes(row.original.category) &&
-                row.original.items.map((item) => (
-                  <tr
-                    key={item._id}
-                    {...row.getRowProps()}
-                    style={{ background: "whitesmoke" }}
-                  >
-                    {row.cells.map((cell) => (
-                      <td
-                        key={cell.column.id}
-                        {...cell.getCellProps()}
-                        style={{ padding: "8px", border: "1px solid grey" }}
-                      >
-                        {cell.render("Cell")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-            </React.Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+    <Box sx={{ width: "100%", height: "100vh", overflowY: "auto" }}>
+      <MaterialReactTable
+        columns={columns}
+        data={data}
+        enableColumnResizing
+        enableStickyHeader
+        enableStickyFooter
+        enablePagination={false}
+        enableColumnOrdering={false}
+        enableColumnDragging={false}
+        initialState={{
+          density: "compact",
+          expanded: true,
+          grouping: ["category"],
+          pagination: { pageIndex: 0, pageSize: 20 },
+          sorting: [{ id: "category", desc: false }],
+        }}
+        enableHiding={false}
+        enableFilters={false}
+        enableGrouping={true}
+        muiToolbarAlertBannerChipProps={{ color: "primary" }}
+        muiTableContainerProps={{ sx: { maxHeight: 700 } }}
+      />
+    </Box>
   );
 };
 
-export default MenuTable;
+export default Example;
