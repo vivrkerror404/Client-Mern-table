@@ -125,7 +125,7 @@ const Example = ({ handleSave, handleReset, data = [] }) => {
   );
 
   return (
-    <Box sx={{ width: "100%", height: "100vh", overflowY: "auto" }}>
+    <Box sx={{ width: "100%" }}>
       <MaterialReactTable
         columns={columns}
         data={data}
